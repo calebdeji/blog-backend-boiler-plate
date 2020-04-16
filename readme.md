@@ -14,4 +14,4 @@
 
 -   Save blog details to the database
 -   Fetch list of blogs link from the database and returns to the browser client
--   Search through the database and returns the necessary resource to the client
+-   Fetch a unique blog frrom the database and returns to the browser client
