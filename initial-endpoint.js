@@ -74,17 +74,17 @@ const handleServerCreation = async (req, res) => {
         case adminSignupURL:
             if (method === postMethod) {
                 try {
-                    const { result } = await signAdminUp(req);
+                    const { hashId, isSignup } = await signAdminUp(req);
 
                     const returnData = {
                         isError: false,
-                        operationText: result ? "Signup successfull" : "Signup failed",
-                        data: null,
+                        operationText: isSignup ? "Signup successfull" : "Signup failed",
+                        data: { hashId, isSignup },
                     };
-                    console.log("is sign up ", isSingUp);
                     writeHead(200);
                     res.end(strignifyData(returnData));
                 } catch (error) {
+                    console.log(error);
                     const returnData = { isError: true, operationText: "Signup failed", error };
                     writeHead(400);
                     res.end(strignifyData(returnData));

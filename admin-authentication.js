@@ -57,17 +57,20 @@ const retrieveUsernameAndPasswordInDB = (username) => {
 const signAdminUp = async (req) => {
     const { username, password } = await getFormFields(req);
     // console.log("username and password ", username, password);
-    const hashPassword = await hashUserPassword(password);
+    const hashPassword = await hashParameter(password);
     const isSignupSuccessful = await saveParametersToDB({ username, password: hashPassword });
-    return isSignupSuccessful;
+    const { insertedId, isSignup } = isSignupSuccessful;
+    console.log("id : ", insertedId);
+    const hashId = await hashParameter(insertedId);
+
+    return { hashId, isSignup };
 };
-const hashUserPassword = async (password) => {
-    // console.log("password : ", password);
+const hashParameter = async (paramValue) => {
+    console.log("paramValue : ", paramValue);
     const saltRounds = 10;
     return new Promise((resolve, reject) => {
-        bcrypt.hash(password, saltRounds, (err, hash) => {
+        bcrypt.hash(paramValue.toString(), saltRounds, (err, hash) => {
             if (err) reject(err);
-            // console.log(hash);
             resolve(hash);
         });
     });
@@ -81,15 +84,16 @@ const saveParametersToDB = ({ username, password }) => {
             db.createCollection("admin-auth", (err, collection) => {
                 if (err) reject(err);
                 collection.findOne({ username }, (err, response) => {
-                    console.log("seen here");
+                    // console.log("seen here");
                     if (err) reject({ errorCode: 400, errorText: "username exits" });
                     if (response === null) {
                         collection.insertOne({ username, password }, (err, response) => {
                             if (err) reject(err);
-                            resolve(response);
+                            console.log("Resolved response", response);
+                            resolve({ ...response, isSignup: true });
                         });
                     } else {
-                        reject({ errorCode: 400, errorText: "username exits" });
+                        reject({ errorCode: 400, errorText: "username exits", isSignup: false });
                     }
                 });
             });
