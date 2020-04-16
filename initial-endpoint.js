@@ -7,8 +7,13 @@ const {
 const {
     module: { getAllBlogsLink, getBlogData },
 } = require("./get-blog-details");
+const {
+    module: { authenticateAdminUser, signAdminUp },
+} = require("./admin-authentication");
 
 const adminURL = "/admin";
+const adminLoginURL = "/admin/login";
+const adminSignupURL = "/admin/signup";
 const getLinksURL = "/get-links";
 const getBlogDataURL = "/get-blog";
 const postMethod = "POST";
@@ -41,6 +46,46 @@ const handleServerCreation = async (req, res) => {
                         error: error,
                     };
                     console.log(error);
+                    writeHead(400);
+                    res.end(strignifyData(returnData));
+                }
+            }
+            break;
+        case adminLoginURL:
+            if (method === postMethod) {
+                try {
+                    const isAuthtenticationValid = await authenticateAdminUser(req);
+                    const returnData = {
+                        isError: false,
+                        operationText: isAuthtenticationValid
+                            ? "Login successfully"
+                            : "Login failed",
+                        data: null,
+                    };
+                    writeHead(200);
+                    res.end(strignifyData(returnData));
+                } catch (error) {
+                    const returnData = { isError: true, operationText: "Login failed", error };
+                    writeHead(400);
+                    res.end(strignifyData(returnData));
+                }
+            }
+            break;
+        case adminSignupURL:
+            if (method === postMethod) {
+                try {
+                    const { result } = await signAdminUp(req);
+
+                    const returnData = {
+                        isError: false,
+                        operationText: result ? "Signup successfull" : "Signup failed",
+                        data: null,
+                    };
+                    console.log("is sign up ", isSingUp);
+                    writeHead(200);
+                    res.end(strignifyData(returnData));
+                } catch (error) {
+                    const returnData = { isError: true, operationText: "Signup failed", error };
                     writeHead(400);
                     res.end(strignifyData(returnData));
                 }
@@ -93,6 +138,8 @@ const handleServerCreation = async (req, res) => {
             }
             break;
         default:
+            writeHead(400);
+            res.end("Invalid link");
             break;
     }
 };
