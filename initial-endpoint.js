@@ -2,7 +2,7 @@ const http = require("http");
 const url = require("url");
 
 const {
-    module: { CollectBlogData },
+    module: { publishBlog, saveDraft, editDraft },
 } = require("./CollectBlogData");
 const {
     module: { getAllBlogsLink, getBlogData, getAllBlogsDraftLink, getBlogDraftData },
@@ -12,6 +12,9 @@ const {
 } = require("./admin-authentication");
 
 const adminURL = "/admin";
+const publishBlogURL = "/publish-blog";
+const saveDraftURL = "/save-draft";
+const editDraftURL = "/edit-draft";
 const adminLoginURL = "/admin/login";
 const adminSignupURL = "/admin/signup";
 const getLinksURL = "/get-links";
@@ -25,6 +28,10 @@ const handleServerCreation = async (req, res) => {
     const { url, method } = req;
     const writeHead = (statusCode) => {
         res.writeHead(statusCode, { "Content-Type": "json" });
+    };
+    const returnBadMethod = () => {
+        writeHead(401);
+        res.end("Bad method");
     };
     switch (url) {
         case adminURL:
@@ -49,6 +56,8 @@ const handleServerCreation = async (req, res) => {
                     writeHead(400);
                     res.end(returnData);
                 }
+            } else {
+                returnBadMethod();
             }
             break;
         case adminLoginURL:
@@ -73,7 +82,7 @@ const handleServerCreation = async (req, res) => {
                     writeHead(400);
                     res.end(returnData);
                 }
-            }
+            } else returnBadMethod();
             break;
         case adminSignupURL:
             if (method === postMethod) {
@@ -97,7 +106,74 @@ const handleServerCreation = async (req, res) => {
                     writeHead(400);
                     res.end(returnData);
                 }
-            }
+            } else returnBadMethod();
+            break;
+        case publishBlogURL:
+            if (method === postMethod) {
+                try {
+                    const publishStatus = await publishBlog(req);
+                    const returnData = getReturnData({
+                        isError: false,
+                        operationText: "Blog published",
+                        data: [publishStatus],
+                    });
+                    writeHead(200);
+                    res.end(returnData);
+                } catch (error) {
+                    const returnData = getReturnData({
+                        isError: true,
+                        operationText: " Blog not published",
+                        error,
+                    });
+                    writeHead(400);
+                    res.end(returnData);
+                }
+            } else returnBadMethod();
+            break;
+        case saveDraftURL:
+            if (method === postMethod) {
+                try {
+                    const saveDraftStatus = await saveDraft(req);
+                    const returnData = getReturnData({
+                        isError: false,
+                        operationText: "Draft saved",
+                        data: [saveDraftStatus],
+                    });
+                    writeHead(200);
+                    res.end(returnData);
+                } catch (error) {
+                    console.log("Error ", error);
+                    const returnData = getReturnData({
+                        isError: true,
+                        operationText: "Draft not saved!",
+                        error,
+                    });
+                    writeHead(400);
+                    res.end(returnData);
+                }
+            } else returnBadMethod();
+            break;
+        case editDraftURL:
+            if (method === postMethod) {
+                try {
+                    const editDraftStatus = await editDraft(req);
+                    const returnData = getReturnData({
+                        isError: false,
+                        operationText: "Draft Edited!",
+                        data: [editDraftStatus],
+                    });
+                    writeHead(200);
+                    res.end(returnData);
+                } catch (error) {
+                    const returnData = getReturnData({
+                        isError: true,
+                        operationText: "Draft not edited",
+                        error,
+                    });
+                    writeHead(400);
+                    res.end(returnData);
+                }
+            } else returnBadMethod();
             break;
         case getLinksURL:
             if (method === getMethod) {
@@ -120,7 +196,7 @@ const handleServerCreation = async (req, res) => {
                     writeHead(400);
                     res.end(strignifyData(returnData));
                 }
-            }
+            } else returnBadMethod();
             break;
         case getBlogDataURL:
             if (method === getMethod) {
@@ -143,7 +219,7 @@ const handleServerCreation = async (req, res) => {
                     writeHead(400);
                     res.end(returnData);
                 }
-            }
+            } else returnBadMethod();
             break;
         case getBlogDraftLinks:
             if (method === getMethod) {
@@ -157,7 +233,7 @@ const handleServerCreation = async (req, res) => {
                     writeHead(200);
                     res.end(returnData);
                 } catch (error) {}
-            }
+            } else returnBadMethod();
             break;
         case getBlogDraftDataURL:
             if (method === getMethod) {
@@ -180,7 +256,8 @@ const handleServerCreation = async (req, res) => {
                     writeHead(400);
                     res.end(returnData);
                 }
-            }
+            } else returnBadMethod();
+            break;
         default:
             writeHead(400);
             res.end("Invalid link");

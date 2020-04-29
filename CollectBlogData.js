@@ -5,31 +5,6 @@ const assert = require("assert");
 
 const { MongoClient, ObjectId } = require("mongodb");
 const mongodbUrl = "mongodb://127.0.0.1:27017/";
-const draftType = "draft";
-const publishType = "publish";
-
-const CollectBlogData = async (req) => {
-    const form = new formidable.IncomingForm();
-    try {
-        const filesField = new Promise((resolve, reject) => {
-            form.parse(req, (err, fields, files) => {
-                if (err) reject(err);
-                const {
-                    file: { name, path },
-                } = files;
-                resolve({ imageName: name, imagePath: path, ...fields });
-            });
-        });
-        const resolvedField = await filesField;
-        const finalFields = await initiateDbandSaveBlogData(resolvedField);
-        console.log("Final fields is ");
-        return finalFields;
-    } catch (error) {
-        console.log("Final final final");
-        throw error;
-    }
-    // console.log("Returned promise is ", await returnedPromise);
-};
 
 const addImageToFileSystem = ({ imageName, imagePath }) => {
     fs.rename(imagePath, `./files/${imageName}`, (err) => {
@@ -52,17 +27,103 @@ const convertStringToObjectId = (id) => {
         resolve(ObjectId(id));
     });
 };
-const initiateDbandSaveBlogData = async ({ title, details, imagePath, type, id }) => {
-    console.log("called seen");
-    const url = convertTitleToURL(title);
+
+const connectMongoDb = (callback) => {
+    MongoClient.connect(mongodbUrl, (err, initialDB) => {
+        if (err) throw new Error(err);
+        const db = initialDB.db("blog");
+        callback(db, initialDB);
+    });
+};
+
+const getFormData = (req) => {
     return new Promise((resolve, reject) => {
-        MongoClient.connect(mongodbUrl, (err, initialDB) => {
-            if (err) throw err;
-            // console.log("Db created");
-            const db = initialDB.db("blog");
-            if (type === publishType) {
-                db.createCollection("blog-collection", (err, collection) => {
-                    if (err) throw err;
+        const form = new formidable.IncomingForm();
+        form.parse(req, (err, fields, files) => {
+            if (err) reject("Invalid form fields");
+            const {
+                file: { name, path },
+            } = files;
+            resolve({ imageName: name, imagePath: path, ...fields });
+        });
+    });
+};
+
+const editDraft = async (req) => {
+    console.log("Request :", req);
+    const { title, details, imagePath, id } = await getFormData(req);
+    console.log("ID : ", id);
+    const url = convertTitleToURL(title);
+    const dataToSave = { $set: { title, details, url } };
+    try {
+        const correspondingObjectId = await convertStringToObjectId(id);
+        return new Promise((resolve, reject) => {
+            connectMongoDb((database, initialDB) => {
+                database.createCollection("blog-drafts", async (err, collection) => {
+                    if (err) reject(err);
+                    collection.findOneAndUpdate(
+                        { _id: correspondingObjectId },
+                        dataToSave,
+                        { returnOriginal: false },
+                        (err, res) => {
+                            if (err) {
+                                reject(err);
+                            }
+                            console.log("Updated : ", res);
+                            addImageToFileSystem({ imageName: correspondingObjectId, imagePath });
+                            resolve(`Blog with title '${title}' has been edited successfully`);
+                            initialDB.close();
+                        }
+                    );
+                });
+            });
+        });
+    } catch (error) {
+        throw new Error(error);
+    }
+};
+
+const saveDraft = async (req) => {
+    const { title, details, imagePath } = await getFormData(req);
+    const url = convertTitleToURL(title);
+    const dataToSave = { title, details, url };
+    try {
+        return new Promise((resolve, reject) => {
+            connectMongoDb((database, initialDB) => {
+                database.createCollection("blog-drafts", async (err, collection) => {
+                    if (err) reject(err);
+                    collection.findOne({ title }, (err, response) => {
+                        if (err) reject(err);
+                        if (response === null) {
+                            collection.insertOne(dataToSave, (err, res) => {
+                                if (err) reject(err);
+                                console.log(`Blog draft with title ${title} saved successfully`);
+                                // addImageToFileSystem()
+                                const { insertedId } = res;
+                                addImageToFileSystem({ imageName: insertedId, imagePath });
+                                initialDB.close();
+                                resolve(`Blog draft with title '${title}' saved successfully`);
+                            });
+                        } else {
+                            reject(`Blog with title ${title} already exists`);
+                        }
+                    });
+                });
+            });
+        });
+    } catch (error) {
+        throw new Error(error);
+    }
+};
+
+const publishBlog = async (req) => {
+    const { title, details, imagePath } = await getFormData(req);
+    const url = convertTitleToURL(title);
+    try {
+        return new Promise((resolve, reject) => {
+            connectMongoDb((database, initialDB) => {
+                database.createCollection("blog-collection", (err, collection) => {
+                    if (err) reject(err);
                     // console.log("Collection created ", collection);
                     const dataToSave = { title, details, url };
 
@@ -84,53 +145,11 @@ const initiateDbandSaveBlogData = async ({ title, details, imagePath, type, id }
                         }
                     });
                 });
-            } else {
-                db.createCollection("blog-drafts", async (err, collection) => {
-                    console.log("blog drafts");
-                    if (err) throw err;
-                    if (id) {
-                        const dataToSave = { $set: { title, details, url } };
-                        const idToMongoDbObject = await convertStringToObjectId(id)
-                            .then((res) => {
-                                collection.findOneAndUpdate(
-                                    { _id: res },
-                                    dataToSave,
-                                    { returnOriginal: false },
-
-                                    (err, res) => {
-                                        if (err) {
-                                            console.log("Ati ri error o");
-                                            reject(err);
-                                        }
-                                        console.log("Updated : ", res);
-                                        initialDB.close();
-                                        resolve(
-                                            `Blog with title '${title}' has been edited successfully`
-                                        );
-                                    }
-                                );
-                                initialDB.close();
-                            })
-                            .catch((err) => {
-                                console.log("Error here ", err);
-                                reject(err);
-                            });
-                    } else {
-                        const dataToSave = { title, details, url };
-                        collection.insertOne(dataToSave, (err, res) => {
-                            if (err) throw err;
-                            console.log(`Blog draft with title ${title} saved successfully`);
-                            // addImageToFileSystem()
-                            const { insertedId } = res;
-                            addImageToFileSystem({ imageName: insertedId, imagePath });
-                            initialDB.close();
-                            resolve(`Blog draft with title '${title}' saved successfully`);
-                        });
-                    }
-                });
-            }
+            });
         });
-    });
+    } catch (error) {
+        throw new Error(error);
+    }
 };
 
-exports.module = { CollectBlogData };
+exports.module = { editDraft, saveDraft, publishBlog };
