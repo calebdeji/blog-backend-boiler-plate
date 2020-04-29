@@ -60,7 +60,6 @@ const signAdminUp = async (req) => {
     const hashPassword = await hashParameter(password);
     const isSignupSuccessful = await saveParametersToDB({ username, password: hashPassword });
     const { insertedId, isSignup } = isSignupSuccessful;
-    console.log("id : ", insertedId);
     const hashId = await hashParameter(insertedId);
 
     return { hashId, isSignup };
