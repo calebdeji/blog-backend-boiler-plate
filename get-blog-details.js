@@ -29,16 +29,6 @@ const getBlogs = async (collectionName) => {
     });
 };
 
-const getCorrespondingImage = (id) => {
-    return new Promise((resolve, reject) => {
-        fs.readFile(`./files/${id}`, (err, data) => {
-            if (err) reject(err);
-            console.log("Data is ", data);
-            resolve(data);
-        });
-    });
-};
-
 const getAllBlogsLink = async (req, res) => {
     const blogs = await getBlogs("blog-collection");
     console.log("Blogs ", blogs);
@@ -51,7 +41,15 @@ const getAllBlogsLink = async (req, res) => {
 const getBlogData = async ({ id, title }) => {
     const blogs = await getBlogs("blog-collection");
     console.log(" Blogs are : ", blogs, id);
-    return blogs.find((blog) => blog._id == id);
+    const imageURL = `${staticImagesFolder}/${id}`;
+    const blogExist = blogs.find((blog) => blog._id == id);
+    if (blogExist) {
+        const { _id: id } = blogExist;
+
+        delete blogExist._id;
+        return { imageURL, id, ...blogExist };
+    }
+    throw new Error("Blog details invalid");
 };
 
 const getAllBlogsDraftLink = async () => {
@@ -59,7 +57,6 @@ const getAllBlogsDraftLink = async () => {
     console.log(blogDrafts);
     return blogDrafts.map((blog, index) => {
         const { _id, url } = blog;
-        console.log("Blog drafts ", blog);
         return { id: _id, url };
     });
 };

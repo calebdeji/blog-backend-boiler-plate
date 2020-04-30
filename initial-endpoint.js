@@ -175,7 +175,7 @@ const handleServerCreation = async (req, res) => {
         case getBlogDataURL:
             if (method === getMethod) {
                 try {
-                    const blogData = await getBlogData({ id: "5e97ee64f470db712693499f" });
+                    const blogData = await getBlogData({ id: "5eaa90fa76897d32e50f4c59" });
                     console.log("Blog data is ", blogData);
                     const returnData = getReturnData({
                         isError: false,
@@ -188,9 +188,9 @@ const handleServerCreation = async (req, res) => {
                     const returnData = getReturnData({
                         isError: true,
                         operationText: "Blog request failed",
-                        error,
+                        error: error.message,
                     });
-                    console.log(error);
+                    console.log("Error message ::::", error.message);
                     writeHead(400);
                     res.end(returnData);
                 }
