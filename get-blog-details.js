@@ -1,12 +1,25 @@
 const { MongoClient } = require("mongodb");
 const mongodbUrl = "mongodb://127.0.0.1:27017/";
+const fs = require("fs");
+var express = require("express");
+var app = express();
+
+//setting middleware
+// app.use(express.static(__dirname + "/files")); //Serves resources from public folder
+const fileServerPort = 5000;
+app.use("/images", express.static(__dirname + "/files"));
+
+var server = app.listen(fileServerPort);
+
+const staticImagesFolder = `http://localhost:${fileServerPort}/images`;
 
 const getBlogs = async (collectionName) => {
     return new Promise((resolve, reject) => {
         MongoClient.connect(mongodbUrl, (err, initialDb) => {
+            if (err) reject(err);
             const db = initialDb.db("blog");
             db.collection(collectionName, (err, collection) => {
-                if (err) throw err;
+                if (err) reject(err);
                 collection.find({}).toArray((err, result) => {
                     resolve(result);
                     initialDb.close();
@@ -16,16 +29,29 @@ const getBlogs = async (collectionName) => {
     });
 };
 
-const getAllBlogsLink = async () => {
+const getCorrespondingImage = (id) => {
+    return new Promise((resolve, reject) => {
+        fs.readFile(`./files/${id}`, (err, data) => {
+            if (err) reject(err);
+            console.log("Data is ", data);
+            resolve(data);
+        });
+    });
+};
+
+const getAllBlogsLink = async (req, res) => {
     const blogs = await getBlogs("blog-collection");
-    return blogs.map((blog, index) => {
-        const { _id, url } = blog;
-        return { id: _id, url };
+    console.log("Blogs ", blogs);
+    return blogs.map(({ _id, url, title }, index) => {
+        const imageURL = `${staticImagesFolder}/${_id}`;
+
+        return { id: _id, url, title, imageURL };
     });
 };
 const getBlogData = async ({ id, title }) => {
     const blogs = await getBlogs("blog-collection");
-    return blogs.find((blog) => blog.id === id);
+    console.log(" Blogs are : ", blogs, id);
+    return blogs.find((blog) => blog._id == id);
 };
 
 const getAllBlogsDraftLink = async () => {

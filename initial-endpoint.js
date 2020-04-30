@@ -27,39 +27,14 @@ const getMethod = "GET";
 const handleServerCreation = async (req, res) => {
     const { url, method } = req;
     const writeHead = (statusCode) => {
-        res.writeHead(statusCode, { "Content-Type": "json" });
+        res.setHeader("Content-Type", "application/json");
+        res.writeHead(statusCode);
     };
     const returnBadMethod = () => {
         writeHead(401);
-        res.end("Bad method");
+        res.end("Invalid method");
     };
     switch (url) {
-        case adminURL:
-            if (method === postMethod) {
-                try {
-                    const saveBlogData = await CollectBlogData(req);
-                    const returnData = getReturnData({
-                        isError: false,
-                        operationText: saveBlogData,
-                        data: [],
-                    });
-                    console.log("Save blgo data ", saveBlogData);
-                    writeHead(200);
-                    res.end(returnData);
-                } catch (error) {
-                    const returnData = getReturnData({
-                        isError: true,
-                        operationText: "Blog data not saved",
-                        error: error,
-                    });
-                    console.log("Return datat nowww ", error);
-                    writeHead(400);
-                    res.end(returnData);
-                }
-            } else {
-                returnBadMethod();
-            }
-            break;
         case adminLoginURL:
             if (method === postMethod) {
                 try {
@@ -178,30 +153,30 @@ const handleServerCreation = async (req, res) => {
         case getLinksURL:
             if (method === getMethod) {
                 try {
-                    const blogLinks = await getAllBlogsLink();
-                    const returnData = {
+                    const blogLinks = await getAllBlogsLink(req, res);
+                    const returnData = getReturnData({
                         isError: false,
                         operationText: "Blog data retrieved",
                         data: blogLinks,
-                    };
+                    });
                     writeHead(200);
-                    res.end(strignifyData(returnData));
+                    res.end(returnData);
                 } catch (error) {
-                    const returnData = {
+                    const returnData = getReturnData({
                         isError: true,
                         operationText: "Blog links not retrieved",
                         error,
-                    };
-                    console.log(error);
+                    });
                     writeHead(400);
-                    res.end(strignifyData(returnData));
+                    res.end(returnData);
                 }
             } else returnBadMethod();
             break;
         case getBlogDataURL:
             if (method === getMethod) {
                 try {
-                    const blogData = await getBlogData({ id: "5ea7e872d2d65033bec6d532" });
+                    const blogData = await getBlogData({ id: "5e97ee64f470db712693499f" });
+                    console.log("Blog data is ", blogData);
                     const returnData = getReturnData({
                         isError: false,
                         operationText: "Blog request succeed",
