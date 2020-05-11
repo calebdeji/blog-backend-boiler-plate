@@ -6,10 +6,15 @@ const assert = require("assert");
 const { MongoClient, ObjectId } = require("mongodb");
 const mongodbUrl = "mongodb://127.0.0.1:27017/";
 
-const addImageToFileSystem = ({ imageName, imagePath }) => {
-    fs.rename(imagePath, `./files/${imageName}`, (err) => {
+const addImageToFileSystem = ({ imageName, image: imageBase64 }) => {
+    // fs.rename(image, `./files/${imageName}`, (err) => {
+    //     if (err) throw err;
+    //     console.log(`Image ${imageName} saved successfully`);
+    // });
+    let imgaeNameString = imageName.toString();
+    fs.writeFile(`./files/${imgaeNameString}`, imageBase64, { encoding: "base64" }, (err) => {
         if (err) throw err;
-        console.log(`Image ${imageName} saved successfully`);
+        console.log(`Image ${imgaeNameString} saved successfully`);
     });
 };
 
@@ -40,55 +45,27 @@ const getFormData = (req) => {
     return new Promise((resolve, reject) => {
         const form = new formidable.IncomingForm();
         form.parse(req, (err, fields, files) => {
-            if (err) reject("Invalid form fields");
-            const {
-                file: { name, path },
-            } = files;
-            resolve({ imageName: name, imagePath: path, ...fields });
+            if (err) {
+                console.log(err);
+                reject("Invalid form fields");
+            }
+            // console.log("files :::: ", fields);
+            const { file } = fields;
+            let base64Image = file.split(";base64,").pop();
+            resolve({ imageName: "unknow", image: base64Image, ...fields });
         });
     });
 };
 
-const editDraft = async (req) => {
-    console.log("Request :", req);
-    const { title, details, imagePath, id } = await getFormData(req);
-    console.log("ID : ", id);
-    const url = convertTitleToURL(title);
-    const dataToSave = { $set: { title, details, url } };
-    try {
-        const correspondingObjectId = await convertStringToObjectId(id);
-        return new Promise((resolve, reject) => {
-            connectMongoDb((database, initialDB) => {
-                database.createCollection("blog-drafts", async (err, collection) => {
-                    if (err) reject(err);
-                    collection.findOneAndUpdate(
-                        { _id: correspondingObjectId },
-                        dataToSave,
-                        { returnOriginal: false },
-                        (err, res) => {
-                            if (err) {
-                                reject(err);
-                            }
-                            console.log("Updated : ", res);
-                            addImageToFileSystem({ imageName: correspondingObjectId, imagePath });
-                            resolve(`Blog with title '${title}' has been edited successfully`);
-                            initialDB.close();
-                        }
-                    );
-                });
-            });
-        });
-    } catch (error) {
-        throw new Error(error);
-    }
-};
-
 const saveDraft = async (req) => {
-    const { title, details, imagePath } = await getFormData(req);
+    const { title, details, image } = await getFormData(req);
     const url = convertTitleToURL(title);
     const dataToSave = { title, details, url };
     try {
         return new Promise((resolve, reject) => {
+            if (isTitleOrDetailsEmpty({ title, details })) {
+                reject("Title or Detail cannot be empty");
+            }
             connectMongoDb((database, initialDB) => {
                 database.createCollection("blog-drafts", async (err, collection) => {
                     if (err) reject(err);
@@ -100,7 +77,7 @@ const saveDraft = async (req) => {
                                 console.log(`Blog draft with title ${title} saved successfully`);
                                 // addImageToFileSystem()
                                 const { insertedId } = res;
-                                addImageToFileSystem({ imageName: insertedId, imagePath });
+                                addImageToFileSystem({ imageName: insertedId, image });
                                 initialDB.close();
                                 resolve(`Blog draft with title '${title}' saved successfully`);
                             });
@@ -116,15 +93,60 @@ const saveDraft = async (req) => {
     }
 };
 
+const editDraft = async (req) => {
+    // console.log("Request :", req);
+    const { title, details, image, id } = await getFormData(req);
+    console.log("ID : ", id);
+    const url = convertTitleToURL(title);
+    const dataToSave = { $set: { title, details, url } };
+    try {
+        const correspondingObjectId = await convertStringToObjectId(id);
+
+        console.log("corresponding ", correspondingObjectId);
+        return new Promise((resolve, reject) => {
+            if (isTitleOrDetailsEmpty({ title, details })) {
+                reject("Title or Detail cannot be empty");
+            }
+            connectMongoDb((database, initialDB) => {
+                database.createCollection("blog-drafts", async (err, collection) => {
+                    if (err) reject(err);
+                    collection.findOneAndUpdate(
+                        { _id: correspondingObjectId },
+                        dataToSave,
+                        { returnOriginal: false },
+                        (err, res) => {
+                            if (err) {
+                                reject(err);
+                            }
+                            console.log("Updated : ", res);
+                            image &&
+                                addImageToFileSystem({ imageName: correspondingObjectId, image });
+                            resolve(`Blog with title '${title}' has been edited successfully`);
+                            initialDB.close();
+                        }
+                    );
+                });
+            });
+        });
+    } catch (error) {
+        throw new Error(error);
+    }
+};
+
 const publishBlog = async (req) => {
-    const { title, details, imagePath } = await getFormData(req);
+    const { title, details, image } = await getFormData(req);
+
     const url = convertTitleToURL(title);
     try {
         return new Promise((resolve, reject) => {
+            if (isTitleOrDetailsEmpty({ title, details })) {
+                reject("Title or Detail cannot be empty");
+            }
             connectMongoDb((database, initialDB) => {
                 database.createCollection("blog-collection", (err, collection) => {
                     if (err) reject(err);
                     // console.log("Collection created ", collection);
+
                     const dataToSave = { title, details, url };
 
                     collection.findOne({ title }, (err, response) => {
@@ -135,7 +157,7 @@ const publishBlog = async (req) => {
                                 // console.log(`Blog with id ${res} saved successfully`);
                                 // addImageToFileSystem()
                                 const { insertedId } = res;
-                                addImageToFileSystem({ imageName: insertedId, imagePath });
+                                addImageToFileSystem({ imageName: insertedId, image });
 
                                 initialDB.close();
                                 resolve(`Blog with title '${title}' successfully Published`);
@@ -152,4 +174,47 @@ const publishBlog = async (req) => {
     }
 };
 
-exports.module = { editDraft, saveDraft, publishBlog };
+const editPublishBlog = async (req) => {
+    const { title, details, image, id } = await getFormData(req);
+    const url = convertTitleToURL(title);
+    const dataToSave = { $set: { title, details, url } };
+
+    try {
+        const correspondingObjectId = await convertStringToObjectId(id);
+        console.log("ID is ", correspondingObjectId);
+        return new Promise((resolve, reject) => {
+            if (isTitleOrDetailsEmpty({ title, details })) {
+                reject("Title or Detail cannot be empty");
+            }
+            connectMongoDb((database, initialDB) => {
+                database.createCollection("blog-collection", (err, collection) => {
+                    if (err) reject(err);
+                    collection.findOneAndUpdate(
+                        { _id: correspondingObjectId },
+                        dataToSave,
+                        { returnOriginal: false },
+                        (err, res) => {
+                            if (err) {
+                                reject(err);
+                            }
+                            console.log("Updated  : ", res);
+                            image &&
+                                addImageToFileSystem({ imageName: correspondingObjectId, image });
+                            resolve(
+                                `Published Blog with title '${title}' has been edited successfully`
+                            );
+                            initialDB.close();
+                        }
+                    );
+                });
+            });
+        });
+    } catch (error) {}
+};
+
+const isTitleOrDetailsEmpty = ({ title, details }) => {
+    const emptyString = "";
+    return title.trim() === emptyString || details.trim() === emptyString;
+};
+
+exports.module = { editDraft, saveDraft, publishBlog, editPublishBlog };
