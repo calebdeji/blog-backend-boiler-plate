@@ -1,17 +1,10 @@
 const { MongoClient } = require("mongodb");
 const mongodbUrl = "mongodb://127.0.0.1:27017/";
 const fs = require("fs");
-var express = require("express");
-var app = express();
-
-//setting middleware
-// app.use(express.static(__dirname + "/files")); //Serves resources from public folder
-const fileServerPort = 5000;
-app.use("/images", express.static(__dirname + "/files"));
-
-var server = app.listen(fileServerPort);
-
-const staticImagesFolder = `http://localhost:${fileServerPort}/images`;
+const {
+    module: { startFileServer, staticImagesFolder },
+} = require("./image-server");
+startFileServer();
 
 const getBlogs = async (collectionName) => {
     return new Promise((resolve, reject) => {
@@ -30,47 +23,55 @@ const getBlogs = async (collectionName) => {
 };
 
 const getAllBlogsLink = async (req, res) => {
-    const blogs = await getBlogs("blog-collection");
-    console.log("Blogs ", blogs);
-    return blogs.map(({ _id, url, title }, index) => {
-        const imageURL = `${staticImagesFolder}/${_id}`;
-
-        return { id: _id, url, title, imageURL };
-    });
+    const blogs = await getBlogListFromCollection("blog-collection");
+    return blogs;
 };
-const getBlogData = async ({ id, title }) => {
+const getBlogData = async ({ url }) => {
     const blogs = await getBlogs("blog-collection");
-    console.log(" Blogs are : ", blogs, id);
-    const imageURL = `${staticImagesFolder}/${id}`;
-    const blogExist = blogs.find((blog) => blog._id == id);
+    const blogExist = blogs.find(({ url: databaseURL }) => url === databaseURL);
     if (blogExist) {
-        const { _id: id } = blogExist;
+        const imageURL = getImageURL(blogExist._id);
 
-        delete blogExist._id;
-        return { imageURL, id, ...blogExist };
+        return { imageURL, ...blogExist };
     }
     throw new Error("Blog details invalid");
 };
 
 const getAllBlogsDraftLink = async () => {
-    const blogDrafts = await getBlogs("blog-drafts");
-    console.log(blogDrafts);
-    return blogDrafts.map((blog, index) => {
-        const { _id, url } = blog;
-        return { id: _id, url };
+    const blogDrafts = await getBlogListFromCollection("blog-drafts");
+    return blogDrafts;
+};
+
+const getBlogListFromCollection = async (collection) => {
+    const blogs = await getBlogs(collection);
+    console.log("Blogs ", blogs);
+    return blogs.map(({ _id, url, title, details }, index) => {
+        const imageURL = getImageURL(_id);
+        // const strimmedDetails = strimDetails(details);
+        return { id: _id, url, title, details, imageURL };
     });
 };
 
-const getBlogDraftData = async ({ id }) => {
-    console.log(`ID :::::::::::::: ${id}`);
-    const stringId = id.toString();
+const getBlogDraftData = async ({ url }) => {
     const blogs = await getBlogs("blog-drafts");
-    console.log("blog", blogs);
-    return blogs.find((blog) => {
-        console.log("Type of id ", typeof blog._id);
-        const blogId = blog._id.toString();
-        return blogId === stringId;
+    // console.log("blog", blogs);
+    const data = blogs.find(({ url: databaseURL }) => {
+        return url === databaseURL;
     });
+    if (data) {
+        const imageURL = getImageURL(data._id);
+        return { ...data, imageURL };
+    } else {
+        throw new Error("Invalid Link");
+    }
+};
+const getImageURL = (id) => {
+    return `${staticImagesFolder}/${id}`;
+};
+const strimDetails = (details) => {
+    let strimmedDetails = details.replace(/(<([^>]+)>)/gi, "");
+
+    return `${strimmedDetails.substr(0, 100)} ...`;
 };
 
 exports.module = { getAllBlogsLink, getBlogData, getAllBlogsDraftLink, getBlogDraftData };
