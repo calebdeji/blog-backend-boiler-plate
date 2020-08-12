@@ -1,0 +1,29 @@
+{
+  "name": "blog-backend-boiler-plate",
+  "version": "1.0.0",
+  "description": "backend that powers calebdeji's blog",
+  "main": "initial-endpoint.js",
+  "dependencies": {
+    "bcrypt": "^5.0.0",
+    "express": "^4.17.1",
+    "formidable": "^1.2.2",
+    "mongodb": "^3.6.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/calebdeji/blog-backend-boiler-plate.git"
+  },
+  "keywords": [
+    "nodejs"
+  ],
+  "author": "@calebdeji06",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/calebdeji/blog-backend-boiler-plate/issues"
+  },
+  "homepage": "https://github.com/calebdeji/blog-backend-boiler-plate#readme"
+}

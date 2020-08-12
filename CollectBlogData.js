@@ -67,7 +67,8 @@ const saveDraft = async (req) => {
                 reject("Title or Detail cannot be empty");
             }
             connectMongoDb((database, initialDB) => {
-                database.createCollection("blog-drafts", async (err, collection) => {
+                console.log({ database, initialDB });
+                database.collection("blog-drafts", async (err, collection) => {
                     if (err) reject(err);
                     collection.findOne({ title }, (err, response) => {
                         if (err) reject(err);
@@ -108,7 +109,7 @@ const editDraft = async (req) => {
                 reject("Title or Detail cannot be empty");
             }
             connectMongoDb((database, initialDB) => {
-                database.createCollection("blog-drafts", async (err, collection) => {
+                database.collection("blog-drafts", async (err, collection) => {
                     if (err) reject(err);
                     collection.findOneAndUpdate(
                         { _id: correspondingObjectId },
@@ -119,8 +120,7 @@ const editDraft = async (req) => {
                                 reject(err);
                             }
                             console.log("Updated : ", res);
-                            image &&
-                                addImageToFileSystem({ imageName: correspondingObjectId, image });
+                            image && addImageToFileSystem({ imageName: correspondingObjectId, image });
                             resolve(`Blog with title '${title}' has been edited successfully`);
                             initialDB.close();
                         }
@@ -143,7 +143,7 @@ const publishBlog = async (req) => {
                 reject("Title or Detail cannot be empty");
             }
             connectMongoDb((database, initialDB) => {
-                database.createCollection("blog-collection", (err, collection) => {
+                database.collection("blog-collection", (err, collection) => {
                     if (err) reject(err);
                     // console.log("Collection created ", collection);
 
@@ -187,7 +187,7 @@ const editPublishBlog = async (req) => {
                 reject("Title or Detail cannot be empty");
             }
             connectMongoDb((database, initialDB) => {
-                database.createCollection("blog-collection", (err, collection) => {
+                database.collection("blog-collection", (err, collection) => {
                     if (err) reject(err);
                     collection.findOneAndUpdate(
                         { _id: correspondingObjectId },
@@ -198,18 +198,17 @@ const editPublishBlog = async (req) => {
                                 reject(err);
                             }
                             console.log("Updated  : ", res);
-                            image &&
-                                addImageToFileSystem({ imageName: correspondingObjectId, image });
-                            resolve(
-                                `Published Blog with title '${title}' has been edited successfully`
-                            );
+                            image && addImageToFileSystem({ imageName: correspondingObjectId, image });
+                            resolve(`Published Blog with title '${title}' has been edited successfully`);
                             initialDB.close();
                         }
                     );
                 });
             });
         });
-    } catch (error) {}
+    } catch (error) {
+        throw new Error(error);
+    }
 };
 
 const isTitleOrDetailsEmpty = ({ title, details }) => {
