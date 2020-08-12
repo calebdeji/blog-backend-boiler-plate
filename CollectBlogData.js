@@ -14,7 +14,7 @@ const addImageToFileSystem = ({ imageName, image: imageBase64 }) => {
     //     console.log(`Image ${imageName} saved successfully`);
     // });
     let imgaeNameString = imageName.toString();
-    fs.writeFile(`./files/${imgaeNameString}`, imageBase64, { encoding: "base64" }, (err) => {
+    fs.writeFile(`./public/${imgaeNameString}`, imageBase64, { encoding: "base64" }, (err) => {
         if (err) throw err;
         console.log(`Image ${imgaeNameString} saved successfully`);
     });

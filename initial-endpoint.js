@@ -1,6 +1,7 @@
 const http = require("http");
 const url = require("url");
-
+const nStatic = require("node-static");
+var fileServer = new nStatic.Server("./public");
 const {
     module: { publishBlog, saveDraft, editDraft, editPublishBlog },
 } = require("./CollectBlogData");
@@ -13,6 +14,9 @@ const {
 const {
     module: { readRequestData },
 } = require("./readRequestData");
+const {
+    module: { startFileServer },
+} = require("./image-server");
 
 const adminURL = "/admin";
 const publishBlogURL = "/publish-blog";
@@ -25,11 +29,13 @@ const getLinksURL = "/get-links";
 const getBlogDataURL = "/get-blog";
 const getBlogDraftLinks = "/get-draft";
 const getBlogDraftDataURL = "/get-draft-data";
+const images = "/images";
 const postMethod = "POST";
 const getMethod = "GET";
 
 const handleServerCreation = async (req, res) => {
     const { url, method } = req;
+
     const writeHead = (statusCode) => {
         res.setHeader("Content-Type", "application/json");
         res.setHeader("Access-Control-Allow-Origin", "*");
@@ -272,11 +278,34 @@ const handleServerCreation = async (req, res) => {
                 readRequestData(req, callback);
             } else returnBadMethod();
             break;
+        case images:
+            const returnData = getReturnData({
+                isError: false,
+                operationText: "images folder",
+                data: null,
+            });
+            startFileServer();
+            res.end(returnData);
+            break;
+
         default:
-            writeHead(400);
-            res.end("Invalid link");
+            fileServer.serve(req, res, function (err, result) {
+                if (err) {
+                    // There was an error serving the file
+                    returnBadMethod();
+                }
+            });
             break;
     }
+
+    // req.addListener("end", function () {
+    //     //
+    //     // Serve files!
+    //     //
+
+    //
+    //     // res.setHeader("Access-Control-Allow-Origin", "*");
+    // }).resume();
 };
 
 const getReturnData = ({ isError, operationText, error, data }) => {
