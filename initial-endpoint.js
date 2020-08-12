@@ -50,9 +50,7 @@ const handleServerCreation = async (req, res) => {
                     const isAuthtenticationValid = await authenticateAdminUser(req);
                     const returnData = getReturnData({
                         isError: false,
-                        operationText: isAuthtenticationValid
-                            ? "Login successfully"
-                            : "Login failed",
+                        operationText: isAuthtenticationValid ? "Login successfully" : "Login failed",
                         data: null,
                     });
                     writeHead(200);
@@ -287,6 +285,6 @@ const getReturnData = ({ isError, operationText, error, data }) => {
         : JSON.stringify({ isError, operationText, data });
 };
 // connectDB();
-const serverPort = process.env.PORT || 8888;
+const serverPort = 8888;
 
 const server = http.createServer(handleServerCreation).listen(serverPort);
