@@ -1,5 +1,7 @@
 const { MongoClient } = require("mongodb");
-const mongodbUrl = "mongodb://127.0.0.1:27017/";
+const {
+    module: { mongodbUrl },
+} = require("./service");
 const fs = require("fs");
 const {
     module: { startFileServer, staticImagesFolder },

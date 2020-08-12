@@ -1,7 +1,9 @@
 const formidable = require("formidable");
 const bcrypt = require("bcrypt");
 const { MongoClient } = require("mongodb");
-const mongodbUrl = "mongodb://127.0.0.1:27017/";
+const {
+    module: { mongodbUrl },
+} = require("./service");
 
 const getFormFields = (req) => {
     const form = new formidable.IncomingForm();

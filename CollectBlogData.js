@@ -4,7 +4,9 @@ const fs = require("fs");
 const assert = require("assert");
 
 const { MongoClient, ObjectId } = require("mongodb");
-const mongodbUrl = "mongodb://127.0.0.1:27017/";
+const {
+    module: { mongodbUrl },
+} = require("./service");
 
 const addImageToFileSystem = ({ imageName, image: imageBase64 }) => {
     // fs.rename(image, `./files/${imageName}`, (err) => {
