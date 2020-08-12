@@ -13,7 +13,6 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "dev": "node initial-endpoint.js",
-        "build": "node initial-endpoint.js",
         "start": "node initial-endpoint.js"
     },
     "repository": {
