@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const fileServerPort = process.env.PORT || 5000;
-const staticImagesFolder = `http://localhost:${fileServerPort}/images`;
+const staticImagesFolder = `https://secure-waters-09245.herokuapp.com/images`;
 //setting middleware
 // app.use(express.static(__dirname + "/files")); //Serves resources from public folder
 
