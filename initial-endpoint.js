@@ -285,6 +285,6 @@ const getReturnData = ({ isError, operationText, error, data }) => {
         : JSON.stringify({ isError, operationText, data });
 };
 // connectDB();
-const serverPort = 8888;
+const serverPort = process.env.port || 8888;
 
 const server = http.createServer(handleServerCreation).listen(serverPort);
